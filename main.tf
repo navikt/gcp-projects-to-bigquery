@@ -1,12 +1,12 @@
 terraform {
   backend "gcs" {
-    bucket = "nais-billing-gcp-projects-to-bigquery-tfstate"
+    bucket = "nais-analyse-prod-gcp-projects-to-bigquery-tfstate"
   }
 }
 
 provider "google" {
   version = "3.45.0"
-  project = "nais-billing"
+  project = "nais-analyse-prod-2dcc"
   region  = "europe-west1"
 }
 
@@ -17,7 +17,7 @@ data "archive_file" "function_archive" {
 }
 
 resource "google_storage_bucket" "bucket" {
-  name     = "cloud-function-gcp-projects-to-bigquery-source"
+  name     = "nais-analyse-prod-cf-gcp-projects-to-bigquery-source"
   location = "EU"
 }
 
@@ -57,7 +57,7 @@ resource "google_cloudfunctions_function" "function" {
   labels = {
     team = "nais"
   }
-  service_account_email = data.google_service_account.projects-to-bigquery.email
+  service_account_email = google_service_account.projects-to-bigquery.email
 }
 
 # IAM entry for a single user to invoke the function
@@ -74,7 +74,7 @@ resource "google_cloudfunctions_function_iam_member" "invoker" {
   member = "serviceAccount:${google_service_account.scheduler-gcp-projects-to-bq.email}"
 }
 
-data "google_service_account" "projects-to-bigquery" {
+resource "google_service_account" "projects-to-bigquery" {
   account_id = "projects-to-bigquery"
 }
 
@@ -98,4 +98,11 @@ resource "google_cloud_scheduler_job" "job" {
       service_account_email = google_service_account.scheduler-gcp-projects-to-bq.email
     }
   }
+}
+
+
+resource "google_bigquery_dataset_iam_member" "editor" {
+  dataset_id = "navbilling"
+  role       = "roles/bigquery.dataEditor"
+  member     = "serviceAccount:${google_service_account.projects-to-bigquery.email}"
 }

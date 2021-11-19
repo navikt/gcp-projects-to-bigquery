@@ -2,7 +2,8 @@ def main(request):
     import json
     projects =  list_projects()
 
-    table_id = "nais-billing.navbilling.gcp_projects"
+    table_id = "nais-analyse-prod-2dcc.navbilling.gcp_projects"
+    #table_id = "nais-billing.navbilling.gcp_projects"
     update_projects_in_bq(projects, table_id)
 
     return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
