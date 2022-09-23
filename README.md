@@ -4,3 +4,8 @@ Cloud Scheduler to trigger the Function every day.
 
 ## Requirements
 * service account `projects-to-bigquery` with org level permissions to read resource manager API
+
+## Deploy
+* `gcloud auth login --update-adc`
+* `terraform init`
+* `terraform apply`

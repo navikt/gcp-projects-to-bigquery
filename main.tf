@@ -5,7 +5,7 @@ terraform {
 }
 
 provider "google" {
-  version = "3.45.0"
+  version = "4.37.0"
   project = "nais-analyse-prod-2dcc"
   region  = "europe-west1"
 }

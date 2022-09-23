@@ -2,3 +2,4 @@
 .terraform
 source.zip
 *.DS_Store
+*.lock.hcl

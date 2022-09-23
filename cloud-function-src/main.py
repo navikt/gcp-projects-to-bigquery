@@ -3,7 +3,6 @@ def main(request):
     projects =  list_projects()
 
     table_id = "nais-analyse-prod-2dcc.navbilling.gcp_projects"
-    #table_id = "nais-billing.navbilling.gcp_projects"
     update_projects_in_bq(projects, table_id)
 
     return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
@@ -16,7 +15,8 @@ def update_projects_in_bq(projects, table_id):
 
     # Delete and recreate table (trunc workaround)
     schema = [bigquery.SchemaField("project", "STRING", mode="REQUIRED"),
-              bigquery.SchemaField("team", "STRING", mode="NULLABLE")]
+              bigquery.SchemaField("team", "STRING", mode="NULLABLE"),
+              bigquery.SchemaField("tenant", "STRING", mode="NULLABLE")]
     table = bigquery.Table(table_id, schema=schema)
     truncate_target_table(client, table_id, table)
 
@@ -32,7 +32,7 @@ def list_projects():
     client = resource_manager.Client()
     import pandas as pd
 
-    projects = pd.DataFrame(columns=['project', 'team'])
+    projects = pd.DataFrame(columns=['project', 'team', 'tenant'])
 
     # PROD
     for project in client.list_projects():
@@ -42,7 +42,12 @@ def list_projects():
         else:
             team = None
 
-        projects = projects.append({'project': name, 'team': team}, ignore_index=True)
+        if 'tenant' in project.labels:
+            tenant = project.labels['tenant']
+        else:
+            tenant = None
+
+        projects = projects.append({'project': name, 'team': team, 'tenant': tenant}, ignore_index=True)
 
     return projects
 
