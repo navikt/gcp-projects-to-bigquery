@@ -15,6 +15,7 @@ def update_projects_in_bq(projects, table_id):
 
     # Delete and recreate table (trunc workaround)
     schema = [bigquery.SchemaField("project", "STRING", mode="REQUIRED"),
+              bigquery.SchemaField("project_id", "STRING", mode="REQUIRED"),
               bigquery.SchemaField("team", "STRING", mode="NULLABLE"),
               bigquery.SchemaField("tenant", "STRING", mode="NULLABLE")]
     table = bigquery.Table(table_id, schema=schema)
@@ -32,11 +33,12 @@ def list_projects():
     client = resource_manager.Client()
     import pandas as pd
 
-    projects = pd.DataFrame(columns=['project', 'team', 'tenant'])
+    projects = pd.DataFrame(columns=['project', 'project_id', 'team', 'tenant'])
 
     # PROD
     for project in client.list_projects():
         name = project.name
+        project_id = project.project_id
         if 'team' in project.labels:
             team = project.labels['team']
         else:
@@ -47,7 +49,12 @@ def list_projects():
         else:
             tenant = None
 
-        projects = projects.append({'project': name, 'team': team, 'tenant': tenant}, ignore_index=True)
+        projects = projects.append({
+            'project': name,
+            'project_id': project_id,
+            'team': team,
+            'tenant': tenant
+        }, ignore_index=True)
 
     return projects
 
