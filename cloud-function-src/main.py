@@ -1,6 +1,7 @@
 def main(request):
     import json
-    projects =  list_projects()
+    projects = list_projects()
+    print(f'Found {len(projects)} projects')
 
     table_id = "nais-analyse-prod-2dcc.navbilling.gcp_projects"
     update_projects_in_bq(projects, table_id)
@@ -14,15 +15,19 @@ def update_projects_in_bq(projects, table_id):
     client = bigquery.Client()
 
     # Delete and recreate table (trunc workaround)
-    schema = [bigquery.SchemaField("project", "STRING", mode="REQUIRED"),
-              bigquery.SchemaField("project_id", "STRING", mode="REQUIRED"),
+    schema = [bigquery.SchemaField("project", "STRING", mode="NULLABLE"),
+              bigquery.SchemaField("project_id", "STRING", mode="NULLABLE"),
               bigquery.SchemaField("team", "STRING", mode="NULLABLE"),
-              bigquery.SchemaField("tenant", "STRING", mode="NULLABLE")]
+              bigquery.SchemaField("tenant", "STRING", mode="NULLABLE"),
+              bigquery.SchemaField("environment", "STRING", mode="NULLABLE")]
     table = bigquery.Table(table_id, schema=schema)
-    truncate_target_table(client, table_id, table)
+    table = truncate_target_table(client, table_id, table)
 
     # Insert rows
-    client.insert_rows_from_dataframe(table, projects)
+    try:
+        client.insert_rows_from_dataframe(table, projects)
+    except Exception as e:
+        print(e)
 
     return True
 
@@ -33,27 +38,22 @@ def list_projects():
     client = resource_manager.Client()
     import pandas as pd
 
-    projects = pd.DataFrame(columns=['project', 'project_id', 'team', 'tenant'])
+    projects = pd.DataFrame(columns=['project', 'project_id', 'team', 'tenant', 'environment'])
 
     # PROD
     for project in client.list_projects():
         name = project.name
         project_id = project.project_id
-        if 'team' in project.labels:
-            team = project.labels['team']
-        else:
-            team = None
-
-        if 'tenant' in project.labels:
-            tenant = project.labels['tenant']
-        else:
-            tenant = None
+        team = get_label('team', project.labels)
+        tenant = get_label('tenant', project.labels)
+        environment = get_label('environment', project.labels)
 
         projects = projects.append({
             'project': name,
             'project_id': project_id,
             'team': team,
-            'tenant': tenant
+            'tenant': tenant,
+            'environment': environment
         }, ignore_index=True)
 
     return projects
@@ -72,4 +72,11 @@ def truncate_target_table(client, table_id, table):
     table = client.create_table(table)  # Make an API request.
     print(f'Created table {table.project}.{table.dataset_id}.{table.table_id}')
 
-    return True
+    return table
+
+
+def get_label(label, labels):
+    if label in labels:
+        return labels[label]
+    else:
+        return None
