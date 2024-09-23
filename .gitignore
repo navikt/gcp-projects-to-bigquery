@@ -3,3 +3,7 @@
 source.zip
 *.DS_Store
 *.lock.hcl
+
+.venv
+
+__pycache__

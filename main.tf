@@ -2,10 +2,16 @@ terraform {
   backend "gcs" {
     bucket = "nais-analyse-prod-gcp-projects-to-bigquery-tfstate"
   }
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.3.0"
+    }
+  }
 }
 
 provider "google" {
-  version = "4.37.0"
   project = "nais-analyse-prod-2dcc"
   region  = "europe-west1"
 }
@@ -46,7 +52,7 @@ resource "google_project_service" "service" {
 resource "google_cloudfunctions_function" "function" {
   name        = "gcp-projects-to-bigquery"
   description = "Reads all GCP projects from org, as well as team labels for these, and writes to BigQuery"
-  runtime     = "python38"
+  runtime     = "python312"
 
   available_memory_mb   = 256
   source_archive_bucket = google_storage_bucket.bucket.name
@@ -55,7 +61,7 @@ resource "google_cloudfunctions_function" "function" {
   timeout               = 60
   entry_point           = "main"
   labels = {
-    team = "nais"
+    team = "nais-analyse"
   }
   service_account_email = google_service_account.projects-to-bigquery.email
 }
