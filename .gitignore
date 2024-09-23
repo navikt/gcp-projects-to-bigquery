@@ -7,3 +7,5 @@ source.zip
 .venv
 
 __pycache__
+
+*.json
