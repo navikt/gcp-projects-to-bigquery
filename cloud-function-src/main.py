@@ -44,28 +44,29 @@ def list_projects():
     # Initialize resource manager client
     client = resourcemanager.ProjectsClient()
 
-    folders = get_all_folder_ids_from_organization(os.environ['ORG_ID'])
+    folders = []
+    for org_id in [os.environ['NAV.NO_ORG_ID'], os.environ['NAIS.IO_ORG_ID']]:
+        folders.extend(get_all_folder_ids_from_organization(org_id))
     
     # Collect project data in a list of dictionaries
     project_data = []
     
-    for folder_name, folder_ids in folders.items():
-        for folder_id in folder_ids:
-            for project in client.list_projects(parent=f"folders/{folder_id}"):
-                name = project.name
-                project_id = project.project_id
-                team = get_label('team', project.labels)
-                tenant = get_label('tenant', project.labels)
-                environment = get_label('environment', project.labels)
+    for folder_name, folder_id in folders:
+        for project in client.list_projects(parent=f"folders/{folder_id}"):
+            name = project.name
+            project_id = project.project_id
+            team = get_label('team', project.labels)
+            tenant = get_label('tenant', project.labels)
+            environment = get_label('environment', project.labels)
 
-                project_data.append({
-                    'project': name,
-                    'project_id': project_id,
-                    'team': team,
-                    'tenant': tenant,
-                    'environment': environment
-                })
-            print(f'Found a total of {len(project_data)} projects after including folder {folder_name}, {folder_id}')
+            project_data.append({
+                'project': name,
+                'project_id': project_id,
+                'team': team,
+                'tenant': tenant,
+                'environment': environment
+            })
+        print(f'Found a total of {len(project_data)} projects after including folder {folder_name}, {folder_id}')
 
     # Create DataFrame from the list of dictionaries
     projects = pd.DataFrame(project_data, columns=['project', 'project_id', 'team', 'tenant', 'environment'])
@@ -93,20 +94,15 @@ def get_all_folder_ids_from_organization(organization_id):
     folder_client = resourcemanager.FoldersClient()
 
     def get_subfolders(parent):
-        subfolders = {}
+        subfolders = []
         folders = folder_client.list_folders(parent=parent)
         for folder in folders:
             folder_name = folder.display_name
             folder_id = folder.name.split('/')[-1]
-            if folder_name not in subfolders:
-                subfolders[folder_name] = []
-            subfolders[folder_name].append(folder_id)
+            subfolders.append((folder_name, folder_id))
             # Recursively get subfolders
             nested_subfolders = get_subfolders(f'folders/{folder_id}')
-            for nested_name, nested_ids in nested_subfolders.items():
-                if nested_name not in subfolders:
-                    subfolders[nested_name] = []
-                subfolders[nested_name].extend(nested_ids)
+            subfolders.extend(nested_subfolders)
         return subfolders
 
     # Get all folders under the organization
