@@ -6,7 +6,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "6.3.0"
+      version = "7.6.0"
     }
   }
 }
@@ -47,6 +47,7 @@ resource "google_project_service" "service" {
   ])
   service                    = each.key
   disable_dependent_services = false
+  disable_on_destroy = false
 }
 
 resource "google_cloudfunctions_function" "function" {
